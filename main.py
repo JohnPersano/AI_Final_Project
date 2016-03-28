@@ -1,85 +1,62 @@
+import random
+
 import nltk
 from nltk.compat import raw_input
 
 from data.animal_node import AnimalNode
 from data.base_node import BaseNode
 from data.genus import Genus
+from nltk.corpus import names
+
+from learning.input_classifier import InputClassifier
 
 if __name__ == "__main__":
 
-        genus = Genus()
+    genus = Genus()
 
-        animal = AnimalNode("canine")
-        animal.genus.append(child="dog")
-        genus.append_animal(animal)
+    input_classifier = InputClassifier()
+    input_classifier.train(questions_file='C:/Users/John/Development/Python/AI_Final_Project/questions.txt',
+                           statements_file='C:/Users/John/Development/Python/AI_Final_Project/statements.txt')
 
-        print("Enter information")
+    input_classifier.print_accuracy()
+    input_classifier.print_important_features(5)
 
-        question = raw_input()
-        question = question.lower()
-
-        word_list = nltk.word_tokenize(question)
-        tagged_words = nltk.pos_tag(word_list)
-
-        chunk_grammar = "Direct: {<NN><VBZ><DT>?<JJ>*<NN>}"
-
-        chunk_parser = nltk.RegexpParser(chunk_grammar)
-        chunks = chunk_parser.parse(tagged_words)
-
-        for chunk in chunks:
-            if isinstance(chunk, nltk.tree.Tree):
-                if chunk.label() == 'Direct':
-                    animal_node = AnimalNode()
-                    for child in chunk.leaves():
-                        if child[1] == "NN":
-                            animal_node.name = child[0]
-                            chunk.remove(child)
-                            break
-
-                    genus.append_attribute(animal_node, chunk)
-
-        genus.print()
-
-        print("Enter simple query")
+    for i in range(10):
+        print("Enter question or statement")
 
         query = raw_input()
         query = query.lower()
 
-        response = genus.node_dictionary.get(query, None)
+        print(input_classifier.classify_text(query))
 
-        if response is not None and response.get_type() == BaseNode.Attribute:
-            print("{} is associated with {}".format(response.name, response.connections))
-
-
-    # tree = Tree()
+    # word_list = nltk.word_tokenize(query)
+    # tagged_words = nltk.pos_tag(word_list)
     #
-    # for i in range(2):
-    #     print("Enter information")
+    # chunk_grammar = "Direct: {<NN><VBZ><DT>?<JJ>*<NN>}"
     #
-    #     question = raw_input()
-    #     question = question.lower()
+    # chunk_parser = nltk.RegexpParser(chunk_grammar)
+    # chunks = chunk_parser.parse(tagged_words)
     #
-    #     word_list = nltk.word_tokenize(question)
-    #     tagged_words = nltk.pos_tag(word_list)
+    # for chunk in chunks:
+    #     if isinstance(chunk, nltk.tree.Tree):
+    #         if chunk.label() == 'Direct':
+    #             animal_node = AnimalNode()
+    #             for child in chunk.leaves():
+    #                 if child[1] == "NN":
+    #                     animal_node.name = child[0]
+    #                     chunk.remove(child)
+    #                     break
     #
-    #     chunk_grammar = "Direct: {<NN><VBZ><DT>?<JJ>*<NN>}"
+    #             genus.append_attribute(animal_node, chunk)
     #
-    #     chunk_parser = nltk.RegexpParser(chunk_grammar)
-    #     chunks = chunk_parser.parse(tagged_words)
+    # genus.print()
     #
-    #     for chunk in chunks:
-    #         if isinstance(chunk, nltk.tree.Tree):
-    #             if chunk.label() == 'Direct':
-    #                 node = Node()
-    #                 node_set = False
-    #                 for child in chunk.leaves():
-    #                     if child[1] == "NN":
-    #                         if node_set is False:
-    #                             node.name = child[0]
-    #                             node_set = True
-    #                         else:
-    #                             node.parent = child[0]
-    #                 tree.append(node)
+    # print("Enter simple query")
     #
-    # tree.print()
-
+    # query = raw_input()
+    # query = query.lower()
+    #
+    # response = genus.node_dictionary.get(query, None)
+    #
+    # if response is not None and response.get_type() == BaseNode.Attribute:
+    #     print("{} is associated with {}".format(response.name, response.connections))
