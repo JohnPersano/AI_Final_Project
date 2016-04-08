@@ -1,4 +1,4 @@
-from data.base_node import BaseNode
+from genus.base_node import BaseNode
 
 
 class AnimalNode(BaseNode):

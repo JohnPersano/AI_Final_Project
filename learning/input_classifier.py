@@ -1,20 +1,16 @@
-# Node class
 import os
 import random
 
-import re
-
 import nltk
 from math import floor
-from nltk.corpus import names
+
+from learning.classifier import Classifier
 
 
-class InputClassifier:
+class InputClassifier(Classifier):
 
     def __init__(self):
-        self.classifier = None
-        self.test_set = []
-        self.training_set = []
+        super().__init__()
 
     def train(self, questions_file="", statements_file=""):
         # Ensure files exist
@@ -25,33 +21,23 @@ class InputClassifier:
                 print("could not find {}".format(statements_file))
             return
 
-        questions = [re.sub(r'[^\w\s]', '', name.lower()) for name in names.words(questions_file)]
-        statements = [re.sub(r'[^\w\s]', '', name.lower()) for name in names.words(statements_file)]
+        print("Training input classifier...")
 
-        labeled_names = ([(name, 'question') for name in questions] +
-                         [(name, 'statement') for name in statements])
+        questions_content = open(questions_file).read()
+        question_sentences = [sentence for sentence in questions_content.split('\n')]
+
+        statements_content = open(statements_file).read()
+        statements_sentences = [sentence for sentence in statements_content.split('\n')]
+
+        labeled_names = ([(sentence, 'question') for sentence in question_sentences] +
+                         [(sentence, 'statement') for sentence in statements_sentences])
         random.shuffle(labeled_names)
 
-        feature_sets = [(self.__word_features(n), gender) for (n, gender) in labeled_names]
+        feature_sets = [(super(InputClassifier, self)._sentence_features(n), sentiment)
+                        for (n, sentiment) in labeled_names]
 
         self.test_set = feature_sets[:floor(len(feature_sets) / 2)]
         self.training_set = feature_sets[floor(len(feature_sets) / 2):]
         self.classifier = nltk.NaiveBayesClassifier.train(self.training_set)
 
         print("Input classifier trained successfully")
-
-    def __word_features(self, words):
-
-        # Add more features here
-        return {word: True for word in words}
-
-    def print_accuracy(self):
-        print("Input classifier accuracy: {}%"
-              .format(int(nltk.classify.accuracy(self.classifier, self.test_set) * 100)))
-
-    def print_important_features(self, amount=15):
-        print(self.classifier.show_most_informative_features(amount))
-
-    def classify_text(self, query=""):
-        return self.classifier.classify(self.__word_features(query))
-

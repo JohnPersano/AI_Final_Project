@@ -1,25 +1,27 @@
-import random
-
 import nltk
 from nltk.compat import raw_input
 
-from data.animal_node import AnimalNode
-from data.base_node import BaseNode
-from data.genus import Genus
-from nltk.corpus import names
+from genus.genus import Genus
 
 from learning.input_classifier import InputClassifier
+from learning.statement_classifier import StatementClassifier
 
 if __name__ == "__main__":
 
     genus = Genus()
 
     input_classifier = InputClassifier()
-    input_classifier.train(questions_file='C:/Users/John/Development/Python/AI_Final_Project/questions.txt',
-                           statements_file='C:/Users/John/Development/Python/AI_Final_Project/statements.txt')
-
+    input_classifier.train(questions_file='C:/Users/John/Development/Python/AI_Final_Project/data/input/questions.txt',
+                           statements_file='C:/Users/John/Development/Python/AI_Final_Project/data/input/statements.txt')
     input_classifier.print_accuracy()
     input_classifier.print_important_features(5)
+
+    statement_classifier = StatementClassifier()
+    statement_classifier.train(
+        genus_direct_file='C:/Users/John/Development/Python/AI_Final_Project/data/statements/genus_direct.txt',
+        genus_direct_not_file='C:/Users/John/Development/Python/AI_Final_Project/data/statements/genus_direct_not.txt')
+    statement_classifier.print_accuracy()
+    statement_classifier.print_important_features(5)
 
     for i in range(10):
         print("Enter question or statement")
@@ -27,36 +29,21 @@ if __name__ == "__main__":
         query = raw_input()
         query = query.lower()
 
-        print(input_classifier.classify_text(query))
+        word_tokens = nltk.word_tokenize(query)
+        print("Your tagged query = {}".format(nltk.pos_tag(word_tokens)))
 
-    # word_list = nltk.word_tokenize(query)
-    # tagged_words = nltk.pos_tag(word_list)
-    #
-    # chunk_grammar = "Direct: {<NN><VBZ><DT>?<JJ>*<NN>}"
-    #
-    # chunk_parser = nltk.RegexpParser(chunk_grammar)
-    # chunks = chunk_parser.parse(tagged_words)
-    #
-    # for chunk in chunks:
-    #     if isinstance(chunk, nltk.tree.Tree):
-    #         if chunk.label() == 'Direct':
-    #             animal_node = AnimalNode()
-    #             for child in chunk.leaves():
-    #                 if child[1] == "NN":
-    #                     animal_node.name = child[0]
-    #                     chunk.remove(child)
-    #                     break
-    #
-    #             genus.append_attribute(animal_node, chunk)
-    #
-    # genus.print()
-    #
-    # print("Enter simple query")
-    #
-    # query = raw_input()
-    # query = query.lower()
-    #
-    # response = genus.node_dictionary.get(query, None)
-    #
-    # if response is not None and response.get_type() == BaseNode.Attribute:
-    #     print("{} is associated with {}".format(response.name, response.connections))
+        print("This query is a {}".format(input_classifier.classify_text(query)))
+
+        if input_classifier.classify_text(query) == 'question':
+            print("I can't answer questions yet")
+            continue
+
+        print("This type of query is {}".format(statement_classifier.classify_text(query)))
+        if statement_classifier.classify_text(query) == 'genus_direct_not':
+            print("I don't know how to handle not statements yet")
+            continue
+
+        print("Resulting genus:")
+
+        genus.append_animal(statement_classifier.get_node(query, statement_classifier.classify_text(query)))
+        genus.print()

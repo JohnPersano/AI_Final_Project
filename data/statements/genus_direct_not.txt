@@ -1,0 +1,25 @@
+A car is not a thing
+A bus is not a car
+A tree is not a leaf
+A leaf is not a thing
+A computer is not an object
+A monitor is not a box
+A bottle is not a container
+A rug is not a flooring
+A phone is not a device
+A fan is not a sphere
+A light is not a wave
+A wave is not a gesture
+A port is not a hub
+A portal is not a dimension
+A box is not a container
+A wall is not a barrier
+A truck is not a car
+A flower is not a plant
+A daisy is not a flower
+An electrician is not a worker
+A plumber is not a person
+An atom is not a sphere
+An electron is not  particle
+A compiler is not a code
+A test is not a boring

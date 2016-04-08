@@ -2,9 +2,9 @@
 import nltk
 import re
 
-from data.animal_node import AnimalNode
-from data.attribute_node import AttributeNode
-from data.base_node import BaseNode
+from genus.animal_node import AnimalNode
+from genus.attribute_node import AttributeNode
+from genus.base_node import BaseNode
 
 
 class Genus:
