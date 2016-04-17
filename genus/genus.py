@@ -1,15 +1,20 @@
 # Class that handles all node operations
+import os
+
 import nltk
 import re
 
+import pickle
+
+import settings
 from genus.animal_node import AnimalNode
 from genus.attribute_node import AttributeNode
 from genus.base_node import BaseNode
 
 
 class Genus:
-    # Root node name will never change
     root_node_name = "mammal"
+    pickle_name = "genus.pickle"
 
     # Instantiate the tree to include the root mammal node
     def __init__(self, ):
@@ -185,6 +190,16 @@ class Genus:
             print("11Animal {} parent {}".format(animal_node.get_name(), parent.get_name()))
 
             parent = self.node_dictionary.get(parent.genus.parent, None)
+
+    def to_pickle(self):
+        pickle_name = os.path.join(settings.DATA_OUT, self.pickle_name)
+        with open(pickle_name, 'wb') as output:
+            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+
+    def from_pickle(self):
+        pickle_name = os.path.join(settings.DATA_OUT, self.pickle_name)
+        with open(pickle_name, 'rb') as file:
+            return pickle.load(file)
 
     # Print the dictionary values
     def print(self):
