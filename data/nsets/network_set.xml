@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<root>
+
+    <train-data>
+        <input>A car has paint</input>
+        <network>
+            Node
+                name = 'paint'
+                attribute_tokens = []
+                inherited_by = ['car']
+            Node
+                name = 'car'
+                attribute_tokens = ['has', 'paint']
+                inherited_by = []
+            Node
+                name = 'has'
+                attribute_tokens = []
+                inherited_by = ['car']
+        </network>
+    </train-data>
+
+</root>

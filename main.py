@@ -1,34 +1,74 @@
 import nltk
-from nltk.compat import raw_input
 
-from genus.animal_node import AnimalNode
-from genus.genus import Genus
-
-from learning.input_classifier import InputClassifier
-from learning.qs_builder import QSBuilder
-from learning.statement_classifier import StatementClassifier
+from learning.input.input_parser import InputParser
+from semantics.node import Node
+from semantics.semantic_network import SemanticNetwork
 
 if __name__ == "__main__":
 
-    qs_builder = QSBuilder()
-    qs_builder.generate_qs_files()
+    node = Node()
+    node.set_name("car")
+    node.add_attribute("has paint")
 
-    input_classifier = InputClassifier()
-    input_classifier.train()
-    input_classifier.print_accuracy()
-    input_classifier.print_important_features(5)
-    input_classifier.to_pickle()
+    semantic_network = SemanticNetwork()
+    semantic_network.add_node(node)
+    semantic_network.print()
+    exit()
 
-    for i in range(10):
-        print("Enter question or statement")
+    input_parser = InputParser()
+    input_parser.train_sentence("dog has red fur", semantic_network)
 
-        query = raw_input()
-        query = query.lower()
+    # print(nltk.pos_tag(nltk.word_tokenize("dog has red fur")))
+    # print(nltk.pos_tag(nltk.word_tokenize("dog has blue tail")))
 
-        word_tokens = nltk.word_tokenize(query)
-        print("Your tagged query = {}".format(nltk.pos_tag(word_tokens)))
+    test_network = SemanticNetwork()
+    test_network.add_node(input_parser.parse_to_node("dog has a blue tail"))
+    test_network.print()
 
-        print("This query is a {}".format(input_classifier.classify_text(query)))
+    query = "What is fur"
+    query_tokens = nltk.word_tokenize(query)
+
+    inherited_bys = []
+    for token in query_tokens:
+        temp_node = test_network.node_dictionary.get(token, None)
+
+        if temp_node is not None:
+            for herited in temp_node.inherited_by:
+                inherited_bys.append(herited)
+
+    inherited_bys.sort(reverse=True)
+
+    print(inherited_bys[0])
+
+
+
+
+
+
+
+
+
+
+
+    # qs_builder = QSBuilder()
+    # qs_builder.generate_qs_files()
+    #
+    # input_classifier = InputClassifier()
+    # input_classifier.train()
+    # input_classifier.print_accuracy()
+    # input_classifier.print_important_features(5)
+    # input_classifier.to_pickle()
+    #
+    # for i in range(10):
+    #     print("Enter question or statement")
+    #
+    #     query = raw_input()
+    #     query = query.lower()
+    #
+    #     word_tokens = nltk.word_tokenize(query)
+    #     print("Your tagged query = {}".format(nltk.pos_tag(word_tokens)))
+    #
+    #     print("This query is a {}".format(input_classifier.classify_text(query)))
     #
     #     if input_classifier.classify_text(query) == 'question':
     #         print("I can't answer questions yet")

@@ -1,13 +1,12 @@
 import os
+import pickle
 import random
-
-import nltk
 from math import floor
 
-import pickle
+import nltk
 
 import settings
-from learning.classifier import Classifier
+from learning.classifiers.classifier import Classifier
 
 
 class InputClassifier(Classifier):

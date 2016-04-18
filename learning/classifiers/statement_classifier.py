@@ -1,11 +1,11 @@
 import os
 import random
-
-import nltk
 from math import floor
 
-from genus.animal_node import AnimalNode
-from learning.classifier import Classifier
+import nltk
+
+from learning.classifiers.classifier import Classifier
+from tree.genus.animal_node import AnimalNode
 
 
 class StatementClassifier(Classifier):
