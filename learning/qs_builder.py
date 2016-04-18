@@ -3,9 +3,8 @@ import random
 import string
 
 import nltk
-from nltk.corpus import gutenberg, brown
-import xml.etree.ElementTree as ET
-
+from nltk.corpus import inaugural
+import xml.etree.ElementTree as ElementTree
 import settings
 
 
@@ -34,11 +33,14 @@ class QSBuilder:
         Generate a fresh set of question/statement files
         :return: None
         """
+        if settings.DEBUG:
+            print("Generating question/statement files...")
         self.__append_corpus_data()
         self.__append_aux_questions()
-
         self.q_out.close()
         self.s_out.close()
+        if settings.DEBUG:
+            print("Question/statement files generated")
 
     def __append_aux_questions(self):
         """
@@ -53,7 +55,7 @@ class QSBuilder:
             file.close()
 
             # Files contain XML data
-            root_element = ET.fromstring(file_data.strip())
+            root_element = ElementTree.fromstring(file_data.strip())
             for element in root_element.findall('target/qa/q'):
                 element = element.text.strip()
                 # There are random 'Other' elements in the set, we do not want these or list type questions
@@ -69,19 +71,21 @@ class QSBuilder:
         """
         sentences = []
 
-        # Use the Gutenberg corpus
-        for fileid in gutenberg.fileids():
-            raw_text = gutenberg.raw(fileid)
-            sentences += nltk.sent_tokenize(raw_text)
+        # Use the Presidential inaugural addresses corpus
+        for fileid in inaugural.fileids():
+            raw_text = inaugural.raw(fileid)
+            sentence_tokens = nltk.sent_tokenize(raw_text)
+            sentences += sentence_tokens
 
         random.shuffle(sentences)
 
         # Write sentences to the sentences and questions files
         for sentence in sentences:
-            if sentence.endswith('?'):
-                self.q_out.write(self.__strip_sentence(sentence) + '\n')
-            else:
-                self.s_out.write(self.__strip_sentence(sentence) + '\n')
+            if sentence and 10 < len(sentence) < 75:
+                if sentence.endswith('?'):
+                    self.q_out.write(self.__strip_sentence(sentence) + '\n')
+                else:
+                    self.s_out.write(self.__strip_sentence(sentence) + '\n')
 
     def __strip_sentence(self, sentence):
         """
@@ -91,4 +95,5 @@ class QSBuilder:
         :return: the stripped sentence
         """
         sentence = ''.join([i for i in sentence if not i.isdigit()])
+        sentence = sentence.lower()
         return self.punct_regex.sub('', sentence)

@@ -13,45 +13,22 @@ if __name__ == "__main__":
     qs_builder = QSBuilder()
     qs_builder.generate_qs_files()
 
-    animal_node = AnimalNode()
-    animal_node.name = "Dog"
+    input_classifier = InputClassifier()
+    input_classifier.train()
+    input_classifier.print_accuracy()
+    input_classifier.print_important_features(5)
+    input_classifier.to_pickle()
 
-    new_genus = Genus()
-    new_genus.append_animal(animal_node)
-    new_genus.print()
-    new_genus.to_pickle()
+    for i in range(10):
+        print("Enter question or statement")
 
-    print("Now loading pickle...")
+        query = raw_input()
+        query = query.lower()
 
-    saved_genus = Genus().from_pickle()
-    saved_genus.print()
+        word_tokens = nltk.word_tokenize(query)
+        print("Your tagged query = {}".format(nltk.pos_tag(word_tokens)))
 
-
-    # genus = Genus()
-    #
-    # input_classifier = InputClassifier()
-    # input_classifier.train(questions_file='C:/Users/John/Development/Python/AI_Final_Project/data/input/questions.txt',
-    #                        statements_file='C:/Users/John/Development/Python/AI_Final_Project/data/input/statements.txt')
-    # input_classifier.print_accuracy()
-    # input_classifier.print_important_features(5)
-    #
-    # statement_classifier = StatementClassifier()
-    # statement_classifier.train(
-    #     genus_direct_file='C:/Users/John/Development/Python/AI_Final_Project/data/statements/genus_direct.txt',
-    #     genus_direct_not_file='C:/Users/John/Development/Python/AI_Final_Project/data/statements/genus_direct_not.txt')
-    # statement_classifier.print_accuracy()
-    # statement_classifier.print_important_features(5)
-    #
-    # for i in range(10):
-    #     print("Enter question or statement")
-    #
-    #     query = raw_input()
-    #     query = query.lower()
-    #
-    #     word_tokens = nltk.word_tokenize(query)
-    #     print("Your tagged query = {}".format(nltk.pos_tag(word_tokens)))
-    #
-    #     print("This query is a {}".format(input_classifier.classify_text(query)))
+        print("This query is a {}".format(input_classifier.classify_text(query)))
     #
     #     if input_classifier.classify_text(query) == 'question':
     #         print("I can't answer questions yet")

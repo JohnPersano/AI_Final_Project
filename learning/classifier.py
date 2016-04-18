@@ -25,13 +25,14 @@ class Classifier:
         word_tokens = nltk.word_tokenize(sentence)
         tagged_words = nltk.pos_tag(word_tokens)
 
+        # TODO Check if ever called
+        if not tagged_words:
+            return features
+
         # This is a bag of words feature
         word_tokens = nltk.word_tokenize(sentence)
         for word in word_tokens:
             features[word] = True
-
-        # This is a uni-gram count feature
-        features["unigram_count"] = len(word_tokens)
 
         # This is a bi-gram feature
         for bigram in nltk.bigrams(word_tokens):
@@ -39,11 +40,10 @@ class Classifier:
 
         # This is a tag feature
         for tag in tagged_words:
-            features[tag[1]] = True
-
-        # This is a tag bi-gram feature
-        for tag_bigram in nltk.bigrams(tagged_words[1]):
-            features[tag_bigram] = True
+            try:
+                features[tag[1]] = True
+            except IndexError:
+                return features
 
         # This is pos count feature
         features.update(Counter(tag for word, tag in tagged_words))
