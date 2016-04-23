@@ -1,44 +1,39 @@
 import nltk
 
-from learning.input.input_parser import InputParser
+from learning.sequencer.input_sequencer import InputSequencer
+from ns_builder import NSBuilder
 from semantics.node import Node
 from semantics.semantic_network import SemanticNetwork
 
 if __name__ == "__main__":
 
-    node = Node()
-    node.set_name("car")
-    node.add_attribute("has paint")
+    ns_builder = NSBuilder()
+    ns_builder.add("dog has red fur", name="dog", attribute="has red fur")
+    ns_builder.add("dog has orange fur", name="dog", attribute="has orange fur")
+    ns_builder.add("cat has ten lives", name="cat", attribute="has ten lives")
+    ns_builder.build()
 
-    semantic_network = SemanticNetwork()
-    semantic_network.add_node(node)
-    semantic_network.print()
-    exit()
-
-    input_parser = InputParser()
-    input_parser.train_sentence("dog has red fur", semantic_network)
-
-    # print(nltk.pos_tag(nltk.word_tokenize("dog has red fur")))
-    # print(nltk.pos_tag(nltk.word_tokenize("dog has blue tail")))
+    input_parser = InputSequencer()
+    input_parser.train()
 
     test_network = SemanticNetwork()
-    test_network.add_node(input_parser.parse_to_node("dog has a blue tail"))
+    test_network.add_node(input_parser.parse_to_node("dog has purple legs"))
     test_network.print()
 
-    query = "What is fur"
-    query_tokens = nltk.word_tokenize(query)
-
-    inherited_bys = []
-    for token in query_tokens:
-        temp_node = test_network.node_dictionary.get(token, None)
-
-        if temp_node is not None:
-            for herited in temp_node.inherited_by:
-                inherited_bys.append(herited)
-
-    inherited_bys.sort(reverse=True)
-
-    print(inherited_bys[0])
+    # query = "What is dog"
+    # query_tokens = nltk.word_tokenize(query)
+    #
+    # inherited_bys = []
+    # for token in query_tokens:
+    #     temp_node = test_network.node_dictionary.get(token, None)
+    #
+    #     if temp_node is not None:
+    #         for herited in temp_node.inherited_by:
+    #             inherited_bys.append(herited)
+    #
+    # inherited_bys.sort(reverse=True)
+    #
+    # print(inherited_bys)
 
 
 

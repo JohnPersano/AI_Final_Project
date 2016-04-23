@@ -2,7 +2,7 @@ import difflib
 import os
 from queue import Queue
 from random import randint
-import xml.etree.ElementTree as ElementTree
+from xml.dom import minidom
 
 import nltk
 
@@ -11,7 +11,7 @@ from semantics.node import Node
 from semantics.semantic_network import SemanticNetwork
 
 
-class InputParser:
+class InputSequencer:
     animal_node_noun = "AMNN"
     attribute_node_noun = "ATNN"
 
@@ -19,28 +19,20 @@ class InputParser:
         self.solutions_dict = {}
 
     def train(self, network_filename="network_set.xml"):
-        network_filename = os.path.join(settings.DATA_NSETS, network_filename)
-        network_file = open(network_filename, "r")
+        network_filename = os.path.join(settings.DATA_OUT, network_filename)
 
-        network_data = network_file.read()
-        network_file.close()
-
-        # TODO
         # Files contain XML data
-        # root_element = ElementTree.fromstring(network_data.strip())
-        # for element in root_element.findall('target/qa/q'):
-        #     element = element.text.strip()
-        #     # There are random 'Other' elements in the set, we do not want these or list type questions
-        #     if element != 'Other' and not element.endswith("."):
-        #         # We do not want punctuation as a potential feature
-        #         element = element.replace("?", "")
-        #         self.q_out.write(element + "\n")
+        xml_document = minidom.parse(network_filename)
+        train_data_items = xml_document.getElementsByTagName('train-data')
 
-    def train_sentence(self, sentence=None, correct_network=None):
+        for train_data_item in train_data_items:
+            input_sentence = train_data_item.getElementsByTagName('sequencer')[0].firstChild.data
+            network_string = train_data_item.getElementsByTagName('network')[0].firstChild.data
+            self.train_sentence(input_sentence, network_string)
+
+    def train_sentence(self, sentence=None, correct_network_string=None):
         if sentence is None:
             print("No sentence was supplied to the InputParser.train_sentence function.")
-        if correct_network is None:
-            raise ValueError("A correct output MUST be supplied to the InputParser.train_sentence function.")
         word_tokens = nltk.word_tokenize(sentence)
         tagged_tokens = nltk.pos_tag(word_tokens)  # [('dog', 'NN'), ('is', 'VBZ'), ('mammal', 'JJ')]
 
@@ -60,14 +52,14 @@ class InputParser:
 
         initial_set = self.__generate_initial_set(count_tuple_list, tag_list)
 
-        solution = self.__find_solution(initial_set, correct_network, tagged_tokens)
+        solution = self.__find_solution(initial_set, correct_network_string, tagged_tokens)
 
         if solution is None:
             print("Could not find solution for {}".format(tagged_tokens))
             return
 
         key = "-".join(tag_list)
-        print(key)
+        print("Added key: {}".format(key))
         self.solutions_dict[key] = solution
 
     def parse_to_node(self, sentence):
@@ -88,6 +80,10 @@ class InputParser:
 
         # The key will be a hyphenated tag list (NN-VBK-DT-NN)
         key = "-".join(tag_list)
+        print("Searched for key: {}".format(key))
+
+        for kee in self.solutions_dict:
+            print("Dict has key: {}".format(kee))
 
         solution_entry = self.solutions_dict.get(key, None)
 
@@ -146,13 +142,14 @@ class InputParser:
                         if function_tuple[0] == 1:
                             node.set_name(data)
                         elif function_tuple[0] == 2:
-                            node.add_attribute(data)
+                            node.build_attribute(data)
                         elif function_tuple[0] == 3:
                             node.add_inherited_by(data)
                         break
+        node.add_attribute(node.attribute_string_builder)
         return node
 
-    def __find_solution(self, initial_set, correct_network, tagged_tokens, max_iterations=15):
+    def __find_solution(self, initial_set, correct_network_string, tagged_tokens, max_iterations=25):
 
         def mutate(child_sequence_set):
             index = randint(0, (len(child) - 1))
@@ -173,22 +170,30 @@ class InputParser:
         i = 0
         best_function_set = None
         best_ratio = 0
+        b = ""
+        c = ""
         while i <= max_iterations:
             if settings.DEBUG:
                 print("Genetic algorithm iteration {}".format(i))
             i += 1
+            print("BEST")
+            print(b)
+            print("CORRECT")
+            print(c)
             for ga_set in ga_set_list:
                 # ga_set position 1 holds the function sequence
                 potential_node = self.__generate_node(ga_set[1], tagged_tokens)
                 new_network = SemanticNetwork()
                 new_network.add_node(potential_node)
 
-                ratio = difflib.SequenceMatcher(None, correct_network.to_string(), new_network.to_string()).ratio()
+                ratio = difflib.SequenceMatcher(None, correct_network_string, new_network.to_string()).ratio()
 
                 if ratio > best_ratio:
                     best_function_set = ga_set
+                    b = new_network.to_string()
+                    c = correct_network_string
 
-                if new_network.to_string() == correct_network.to_string() or ratio == 1.0:
+                if new_network.to_string() == correct_network_string or ratio == 1.0:
                     if settings.DEBUG:
                         print("Genetic algorithm: Found exact match")
                         print(ratio)
@@ -228,8 +233,6 @@ class InputParser:
                 chance = randint(35, 45)
 
                 if num % chance == 0:
-                    if settings.DEBUG:
-                        print("Genetic algorithm: Child has mutated.")
                     child = mutate(child)
 
                 temp_ga_set_list.append([0, child])
@@ -249,8 +252,6 @@ class InputParser:
                 chance = randint(35, 45)
 
                 if num % chance == 0:
-                    if settings.DEBUG:
-                        print("Genetic algorithm: Child has mutated.")
                     child = mutate(child)
                 temp_ga_set_list.append([0, child])
 

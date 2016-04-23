@@ -22,8 +22,11 @@ class SemanticNetwork:
         if temp_node is None:
             temp_node = node
         else:
-            temp_node.attribute_tokens += node.attribute_tokens
-            temp_node.inherited_by += node.inherited_by
+            # Combine attributes and parents of new and old node
+            for attribute in node.attributes:
+                temp_node.add_attribute(attribute)
+            for parent in node.inherited_by:
+                temp_node.add_inherited_by(parent)
         node = temp_node
 
         for attribute_token in node.attribute_tokens:

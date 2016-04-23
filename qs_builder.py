@@ -78,6 +78,8 @@ class QSBuilder:
             sentences += sentence_tokens
 
         random.shuffle(sentences)
+        random.shuffle(sentences)
+        random.shuffle(sentences)
 
         # Write sentences to the sentences and questions files
         for sentence in sentences:

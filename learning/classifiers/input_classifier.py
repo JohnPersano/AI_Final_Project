@@ -20,7 +20,7 @@ class InputClassifier(Classifier):
         s_out = os.path.join(settings.DATA_OUT, s_out)
 
         if settings.DEBUG:
-            print("Training input classifier...")
+            print("Training sequencer classifier...")
 
         questions_content = open(q_out).read()
         question_sentences = [sentence for sentence in questions_content.split('\n')]
