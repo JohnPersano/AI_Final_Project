@@ -50,6 +50,38 @@ class Classifier:
 
         return features
 
+    @staticmethod
+    def _node_features(words):
+        features = {}
+
+        word_tokens = nltk.word_tokenize(sentence)
+        tagged_words = nltk.pos_tag(word_tokens)
+
+        # TODO Check if ever called
+        if not tagged_words:
+            return features
+
+        # This is a bag of words feature
+        word_tokens = nltk.word_tokenize(sentence)
+        for word in word_tokens:
+            features[word] = True
+
+        # This is a bi-gram feature
+        for bigram in nltk.bigrams(word_tokens):
+            features[bigram] = True
+
+        # This is a tag feature
+        for tag in tagged_words:
+            try:
+                features[tag[1]] = True
+            except IndexError:
+                return features
+
+        # This is pos count feature
+        features.update(Counter(tag for word, tag in tagged_words))
+
+        return features
+
     def print_accuracy(self):
         print("Input classifier accuracy: {}%"
               .format(int(nltk.classify.accuracy(self.classifier, self.test_set) * 100)))

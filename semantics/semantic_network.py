@@ -1,8 +1,12 @@
 import os
 import pickle
 
+import nltk
+
 import settings
 from semantics.node import Node
+from semantics.object_node import ObjectNode
+from semantics.relation_node import RelationNode
 
 
 class SemanticNetwork:
@@ -16,30 +20,99 @@ class SemanticNetwork:
         if node is None:
             print("Cannot add a node of type None!")
             return
-
         # Do we already have this node in our tree?
-        temp_node = self.node_dictionary.get(node.name, None)
+        temp_node = self.node_dictionary.get(node.get_key(), None)
         if temp_node is None:
             temp_node = node
         else:
             # Combine attributes and parents of new and old node
-            for attribute in node.attributes:
-                temp_node.add_attribute(attribute)
-            for parent in node.inherited_by:
-                temp_node.add_inherited_by(parent)
+            temp_node += node
         node = temp_node
 
-        for attribute_token in node.attribute_tokens:
-            temp_attribute_token = self.node_dictionary.get(attribute_token, None)
-            if temp_attribute_token is None:
-                temp_attribute_token = Node(attribute_token)
-            attribute_token = temp_attribute_token
-            attribute_token.add_inherited_by(node.name)
-            self.node_dictionary[attribute_token.name] = attribute_token
+        # Ensure derivative children exist e.g. for "red fox", red and fox must exist
+        if len(node.value_tokens) > 1:
+            for value_token in node.value_tokens:
+                temp_value_token = self.node_dictionary.get(value_token, None)
+                if temp_value_token is None:
+                    new_node = ObjectNode()
+                    new_node.set_value(value_token)
+                    temp_value_token = new_node
+                value_token_object = temp_value_token
+                value_token_object.add_constituent_of(node)
+                self.node_dictionary[value_token] = value_token_object
 
-        self.node_dictionary[node.name] = node
+        for in_relationship in node.in_relationships:
+            object_tokens = nltk.word_tokenize(in_relationship[0])
+            object_key = RelationNode.create_key(object_tokens)
+            temp_object = self.node_dictionary.get(object_key, None)
+            if temp_object is None:
+                new_object = ObjectNode()
+                new_object.set_value(in_relationship[0])
+                temp_object = new_object
+            relation_object = temp_object
 
-    def __contains_item(self, node_attribute_tokens, token):
+            relation_key = RelationNode.create_key(in_relationship[1])
+            temp_relation = self.node_dictionary.get(relation_key, None)
+            if relation_key is None:
+                new_relation = RelationNode()
+                new_relation.set_value(in_relationship[1])
+                temp_relation = new_relation
+            relation = temp_relation
+            relation.add_in_object(relation_object)
+            relation.add_out_object(node)
+            self.node_dictionary[relation_key] = relation
+
+            relation_object.add_out_relationship((relation, node))
+            self.node_dictionary[object_key] = relation_object
+            if len(relation_object.value_tokens) > 1:
+                for value_token in relation_object.value_tokens:
+                    temp_value_token = self.node_dictionary.get(value_token, None)
+                    if temp_value_token is None:
+                        new_node = ObjectNode()
+                        new_node.set_value(value_token)
+                        temp_value_token = new_node
+                    value_token_object = temp_value_token
+                    value_token_object.add_constituent_of(relation_object)
+                    self.node_dictionary[value_token] = value_token_object
+
+        for out_relationship in node.out_relationships:
+            object_tokens = nltk.word_tokenize(out_relationship[1])
+            object_key = RelationNode.create_key(object_tokens)
+            temp_object = self.node_dictionary.get(object_key, None)
+            if temp_object is None:
+                new_object = ObjectNode()
+                new_object.set_value(out_relationship[1])
+                temp_object = new_object
+            relation_object = temp_object
+
+            relation_key = RelationNode.create_key(out_relationship[0])
+            temp_relation = self.node_dictionary.get(relation_key, None)
+            if temp_relation is None:
+                new_relation = RelationNode()
+                new_relation.set_value(out_relationship[0])
+                temp_relation = new_relation
+            relation = temp_relation
+            relation.add_in_object(node)
+            relation.add_out_object(relation_object)
+            self.node_dictionary[relation_key] = relation
+
+            relation_object.add_in_relationship((node, relation))
+            self.node_dictionary[object_key] = relation_object
+            if len(relation_object.value_tokens) > 1:
+                for value_token in relation_object.value_tokens:
+                    temp_value_token = self.node_dictionary.get(value_token, None)
+                    if temp_value_token is None:
+                        new_node = ObjectNode()
+                        new_node.set_value(value_token)
+                        temp_value_token = new_node
+                    value_token_object = temp_value_token
+                    value_token_object.add_constituent_of(relation_object)
+                    self.node_dictionary[value_token] = value_token_object
+
+        self.node_dictionary[node.get_key()] = node
+
+    @staticmethod
+    def __contains_item(node_attribute_tokens, token):
         for temp_attribute_token in node_attribute_tokens:
             if token == temp_attribute_token:
                 return True

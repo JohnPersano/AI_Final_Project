@@ -5,15 +5,13 @@ from random import randint
 from xml.dom import minidom
 
 import nltk
+from math import floor
 
 import settings
-from semantics.node import Node
-from semantics.semantic_network import SemanticNetwork
+from semantics.object_node import ObjectNode
 
 
 class InputSequencer:
-    animal_node_noun = "AMNN"
-    attribute_node_noun = "ATNN"
 
     def __init__(self):
         self.solutions_dict = {}
@@ -26,11 +24,11 @@ class InputSequencer:
         train_data_items = xml_document.getElementsByTagName('train-data')
 
         for train_data_item in train_data_items:
-            input_sentence = train_data_item.getElementsByTagName('sequencer')[0].firstChild.data
-            network_string = train_data_item.getElementsByTagName('network')[0].firstChild.data
+            input_sentence = train_data_item.getElementsByTagName('sentence')[0].firstChild.data
+            network_string = train_data_item.getElementsByTagName('node')[0].firstChild.data
             self.train_sentence(input_sentence, network_string)
 
-    def train_sentence(self, sentence=None, correct_network_string=None):
+    def train_sentence(self, sentence=None, correct_node_string=None):
         if sentence is None:
             print("No sentence was supplied to the InputParser.train_sentence function.")
         word_tokens = nltk.word_tokenize(sentence)
@@ -52,7 +50,7 @@ class InputSequencer:
 
         initial_set = self.__generate_initial_set(count_tuple_list, tag_list)
 
-        solution = self.__find_solution(initial_set, correct_network_string, tagged_tokens)
+        solution = self.__find_solution(initial_set, correct_node_string, tagged_tokens)
 
         if solution is None:
             print("Could not find solution for {}".format(tagged_tokens))
@@ -80,10 +78,13 @@ class InputSequencer:
 
         # The key will be a hyphenated tag list (NN-VBK-DT-NN)
         key = "-".join(tag_list)
-        print("Searched for key: {}".format(key))
+        if settings.DEBUG:
+            print("Searched for key: {}".format(key))
 
-        for kee in self.solutions_dict:
-            print("Dict has key: {}".format(kee))
+        if settings.DEBUG:
+            print("\nDictionary keys-------------------\n")
+            for dict_key in self.solutions_dict:
+                print("Dictionary has key: {}".format(dict_key))
 
         solution_entry = self.solutions_dict.get(key, None)
 
@@ -131,7 +132,7 @@ class InputSequencer:
 
     @staticmethod
     def __generate_node(function_sequence, tagged_tokens):
-        node = Node()
+        node_builder = ObjectNode.Factory()
         for function_tuple in function_sequence:
             count = 0
             for tagged_token in tagged_tokens:
@@ -140,18 +141,19 @@ class InputSequencer:
                     if count == function_tuple[1]:
                         data = tagged_token[0]
                         if function_tuple[0] == 1:
-                            node.set_name(data)
+                            node_builder.add_value(data)
                         elif function_tuple[0] == 2:
-                            node.build_attribute(data)
+                            node_builder.add_relation(data)
                         elif function_tuple[0] == 3:
-                            node.add_inherited_by(data)
+                            node_builder.add_relation_object(data)
                         break
-        node.add_attribute(node.attribute_string_builder)
-        return node
+        return node_builder.build()
 
-    def __find_solution(self, initial_set, correct_network_string, tagged_tokens, max_iterations=25):
+    def __find_solution(self, initial_set, correct_node_string, tagged_tokens, max_iterations=100):
 
         def mutate(child_sequence_set):
+            if settings.DEBUG:
+                print("Genetic algorithm: Child has mutated")
             index = randint(0, (len(child) - 1))
 
             child_function_sequence = child_sequence_set[index]
@@ -160,40 +162,33 @@ class InputSequencer:
             child_sequence_set[index] = temp_function_sequence
             return child
 
+        def get_corrected_ratio(f_ratio):
+            return floor(f_ratio * pow(10, 10))
+
         ga_set_list = []
         temp_ga_set_list = []
 
-        # Create initial GA set. [0] = ratio and [1] = function sequence
+        # Create initial GA set. tuple[0] = ratio and tuple[1] = function sequence
         for function_sequence in initial_set:
             ga_set_list.append([0, function_sequence])
 
         i = 0
         best_function_set = None
         best_ratio = 0
-        b = ""
-        c = ""
         while i <= max_iterations:
             if settings.DEBUG:
-                print("Genetic algorithm iteration {}".format(i))
+                print("Genetic algorithm: Iteration {}".format(i))
             i += 1
-            print("BEST")
-            print(b)
-            print("CORRECT")
-            print(c)
             for ga_set in ga_set_list:
-                # ga_set position 1 holds the function sequence
-                potential_node = self.__generate_node(ga_set[1], tagged_tokens)
-                new_network = SemanticNetwork()
-                new_network.add_node(potential_node)
+                # ga_set[1] holds the function sequence
+                potential_node_string = self.__generate_node(ga_set[1], tagged_tokens).to_string()
 
-                ratio = difflib.SequenceMatcher(None, correct_network_string, new_network.to_string()).ratio()
+                ratio = difflib.SequenceMatcher(None, correct_node_string, potential_node_string).ratio()
 
                 if ratio > best_ratio:
                     best_function_set = ga_set
-                    b = new_network.to_string()
-                    c = correct_network_string
 
-                if new_network.to_string() == correct_network_string or ratio == 1.0:
+                if correct_node_string == potential_node_string or ratio == 1.0:
                     if settings.DEBUG:
                         print("Genetic algorithm: Found exact match")
                         print(ratio)
@@ -201,7 +196,7 @@ class InputSequencer:
                     return ga_set
 
                 # Sort by integer so convert float ratio to integer
-                temp_ga_set_list.append([ratio * 1000, ga_set[1]])
+                temp_ga_set_list.append([get_corrected_ratio(ratio), ga_set[1]])
 
             ga_set_list.clear()
             ga_set_list += temp_ga_set_list
@@ -210,6 +205,7 @@ class InputSequencer:
             # Sort by ratio (descending)
             ga_set_list.sort(key=lambda x: int(x[0]), reverse=True)
 
+            # Place all items in a queue, best parents will mate first
             ga_queue = Queue()
             for ga_set in ga_set_list:
                 ga_queue.put(ga_set)
@@ -229,9 +225,9 @@ class InputSequencer:
 
                 child = parent_one + parent_two
 
-                num = randint(0, 100)
-                chance = randint(35, 45)
-
+                # Possibly mutate the child
+                num = randint(250, 1000)
+                chance = randint(11, 250)
                 if num % chance == 0:
                     child = mutate(child)
 
@@ -248,11 +244,12 @@ class InputSequencer:
 
                 child = parent_one + parent_two
 
-                num = randint(0, 100)
-                chance = randint(35, 45)
-
+                # Possibly mutate the child
+                num = randint(250, 1000)
+                chance = randint(11, 250)
                 if num % chance == 0:
                     child = mutate(child)
+
                 temp_ga_set_list.append([0, child])
 
             ga_set_list.clear()
