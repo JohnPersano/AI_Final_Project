@@ -15,6 +15,10 @@ class ObjectNode(Node):
             self.value_tokens = []
             self.relations = []
             self.relation_objects = []
+            self.sn_classifier = None
+
+        def set_sn_classifier(self, sn_classifier):
+            self.sn_classifier = sn_classifier
 
         def add_value(self, value):
             self.value_tokens.append(value)
@@ -33,7 +37,9 @@ class ObjectNode(Node):
             if len(self.relations) >= 0 and len(self.relation_objects) > 0:
                 relationship = RelationNode()
                 relationship_value = " ".join(self.relations)
-                relationship.set_value(relationship_value)
+                print("\n\n\n")
+                print(relationship_value)
+                relationship.set_value(relationship_value, self.sn_classifier)
 
                 relationship_object = ObjectNode()
                 relationship_object_value = " ".join(self.relation_objects)

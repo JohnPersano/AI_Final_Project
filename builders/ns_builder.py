@@ -10,10 +10,11 @@ from semantics.object_node import ObjectNode
 class NSBuilder:
     pickle_name = "ns_builder.pickle"
 
-    def __init__(self, n_out="network_set.xml"):
+    def __init__(self, sn_classifier, n_out="network_set.xml"):
         # Pipe output into the data output folder
         n_out = os.path.join(settings.DATA_OUT, n_out)
 
+        self.sn_classifier = sn_classifier
         self.pickle_path = os.path.join(settings.DATA_OUT, self.pickle_name)
         self.n_out = n_out
         self._build_list = []
@@ -22,7 +23,7 @@ class NSBuilder:
         if os.path.exists(self.pickle_path):
             with open(self.pickle_path, 'rb') as file:
                 return pickle.load(file)
-        return NSBuilder()
+        return self
 
     def create_standard_set(self):
         # We loaded an existing set from a pickle
@@ -78,6 +79,7 @@ class NSBuilder:
 
         # Begin creating new node with the node factory
         node_factory = ObjectNode.Factory()
+        node_factory.set_sn_classifier(self.sn_classifier)
         for value in values:
             node_factory.add_value(value)
         for relation in relations:

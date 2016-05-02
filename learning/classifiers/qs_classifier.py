@@ -9,7 +9,7 @@ import settings
 from learning.classifiers.classifier import Classifier
 
 
-class InputClassifier(Classifier):
+class QSClassifier(Classifier):
     pickle_name = "input_classifier.pickle"
 
     def __init__(self):
@@ -20,7 +20,7 @@ class InputClassifier(Classifier):
         s_out = os.path.join(settings.DATA_OUT, s_out)
 
         if settings.DEBUG:
-            print("Training sequencer classifier...")
+            print("Training question/statement classifier...")
 
         questions_content = open(q_out).read()
         question_sentences = [sentence for sentence in questions_content.split('\n')]
@@ -30,14 +30,18 @@ class InputClassifier(Classifier):
                          [(sentence, 'statement') for sentence in statements_sentences])
         random.shuffle(labeled_names)
 
-        feature_sets = [(super(InputClassifier, self)._sentence_features(n), sentiment)
+        feature_sets = [(super(QSClassifier, self)._sentence_features(n), sentiment)
                         for (n, sentiment) in labeled_names]
-        self.test_set = feature_sets[:floor(len(feature_sets) / 2)]
-        self.training_set = feature_sets[floor(len(feature_sets) / 2):]
+
+        training_index = floor(len(feature_sets) * .70)
+        test_index = floor(len(feature_sets) * .30)
+
+        self.training_set = feature_sets[training_index:]
+        self.test_set = feature_sets[:test_index]
         self.classifier = nltk.NaiveBayesClassifier.train(self.training_set)
 
         if settings.DEBUG:
-            print("Input classifier trained successfully")
+            print("Question/statement classifier trained successfully")
 
     def to_pickle(self):
         pickle_name = os.path.join(settings.DATA_OUT, self.pickle_name)

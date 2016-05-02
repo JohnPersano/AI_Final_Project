@@ -38,44 +38,16 @@ class Classifier:
         for bigram in nltk.bigrams(word_tokens):
             features[bigram] = True
 
+        """
+        The below feature is commented out because it was shown to have a negative
+        impact on sentiment classification
+        """
         # This is a tag feature
-        for tag in tagged_words:
-            try:
-                features[tag[1]] = True
-            except IndexError:
-                return features
-
-        # This is pos count feature
-        features.update(Counter(tag for word, tag in tagged_words))
-
-        return features
-
-    @staticmethod
-    def _node_features(words):
-        features = {}
-
-        word_tokens = nltk.word_tokenize(sentence)
-        tagged_words = nltk.pos_tag(word_tokens)
-
-        # TODO Check if ever called
-        if not tagged_words:
-            return features
-
-        # This is a bag of words feature
-        word_tokens = nltk.word_tokenize(sentence)
-        for word in word_tokens:
-            features[word] = True
-
-        # This is a bi-gram feature
-        for bigram in nltk.bigrams(word_tokens):
-            features[bigram] = True
-
-        # This is a tag feature
-        for tag in tagged_words:
-            try:
-                features[tag[1]] = True
-            except IndexError:
-                return features
+        # for tag in tagged_words:
+        #     try:
+        #         features[tag[1]] = True
+        #     except IndexError:
+        #         return features
 
         # This is pos count feature
         features.update(Counter(tag for word, tag in tagged_words))
@@ -95,4 +67,4 @@ class Classifier:
     def prob_classify_text(self, query=""):
         probabilities = self.classifier.prob_classify(self._sentence_features(query))
         for sample in probabilities.samples():
-            return "{0}: {1}".format(sample, probabilities.prob(sample))
+            return sample, probabilities.prob(sample)

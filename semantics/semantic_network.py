@@ -13,8 +13,9 @@ class SemanticNetwork:
     pickle_name = "semantic_network.pickle"
 
     # Instantiate the tree to include the root mammal node
-    def __init__(self, ):
+    def __init__(self, sn_classifier):
         self.node_dictionary = {}
+        self.sn_classifier = sn_classifier
 
     def add_node(self, node=None):
         if node is None:
@@ -42,8 +43,7 @@ class SemanticNetwork:
                 self.node_dictionary[value_token] = value_token_object
 
         for in_relationship in node.in_relationships:
-            object_tokens = nltk.word_tokenize(in_relationship[0])
-            object_key = RelationNode.create_key(object_tokens)
+            object_key = RelationNode.create_key(in_relationship[0])
             temp_object = self.node_dictionary.get(object_key, None)
             if temp_object is None:
                 new_object = ObjectNode()
@@ -55,7 +55,7 @@ class SemanticNetwork:
             temp_relation = self.node_dictionary.get(relation_key, None)
             if relation_key is None:
                 new_relation = RelationNode()
-                new_relation.set_value(in_relationship[1])
+                new_relation.set_value(in_relationship[1], self.sn_classifier)
                 temp_relation = new_relation
             relation = temp_relation
             relation.add_in_object(relation_object)
@@ -76,8 +76,7 @@ class SemanticNetwork:
                     self.node_dictionary[value_token] = value_token_object
 
         for out_relationship in node.out_relationships:
-            object_tokens = nltk.word_tokenize(out_relationship[1])
-            object_key = RelationNode.create_key(object_tokens)
+            object_key = RelationNode.create_key(out_relationship[1])
             temp_object = self.node_dictionary.get(object_key, None)
             if temp_object is None:
                 new_object = ObjectNode()
@@ -85,11 +84,13 @@ class SemanticNetwork:
                 temp_object = new_object
             relation_object = temp_object
 
+            print("In relat : {}".format(out_relationship[0]))
+
             relation_key = RelationNode.create_key(out_relationship[0])
             temp_relation = self.node_dictionary.get(relation_key, None)
             if temp_relation is None:
                 new_relation = RelationNode()
-                new_relation.set_value(out_relationship[0])
+                new_relation.set_value(out_relationship[0], self.sn_classifier)
                 temp_relation = new_relation
             relation = temp_relation
             relation.add_in_object(node)

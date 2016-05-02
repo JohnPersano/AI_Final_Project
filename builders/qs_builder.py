@@ -28,7 +28,7 @@ class QSBuilder:
         self.q_out = open(q_out, "w")
         self.s_out = open(s_out, "w")
 
-    def generate_qs_files(self):
+    def create_standard_set(self):
         """
         Generate a fresh set of question/statement files
         :return: None
