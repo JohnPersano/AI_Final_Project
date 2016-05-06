@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/27/2016
+"""
+
 import os
 import pickle
 import random
@@ -10,12 +17,20 @@ from learning.classifiers.classifier import Classifier
 
 
 class SNClassifier(Classifier):
+    """
+    The SNClassifier attempts to classify a query into positive or negative sentiment based
+    on its content.
+    """
     pickle_name = "sentiment_classifier.pickle"
 
     def __init__(self):
         super().__init__()
 
     def train(self, p_file="positive.txt", n_file="negative.txt"):
+        """
+         Train the classifier on the appropriate data set. This classifier uses data located
+         in the data/sensets/ folder.
+        """
         p_file = os.path.join(settings.DATA_SENSETS, p_file)
         n_file = os.path.join(settings.DATA_SENSETS, n_file)
 

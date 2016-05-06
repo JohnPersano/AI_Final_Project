@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   03/12/2016
+"""
+
 import difflib
 import os
 from queue import Queue
@@ -14,6 +21,11 @@ from semantics.object_node import ObjectNode
 
 
 class InputSequencer:
+    """
+    The InputSequencer class attempts to figure out how a particular sentence
+    should be parsed into data. The InputSequencer will be trained on data
+    created by the NSBuilder class and is located in data/out/ folder.
+    """
     pickle_name = "input_sequencer.pickle"
 
     def __init__(self):
@@ -21,13 +33,19 @@ class InputSequencer:
         self.pickle_path = os.path.join(settings.DATA_OUT, self.pickle_name)
 
     def load(self):
+        """
+        Try to load this class from an existing pickle to speed things up.
+        """
         if os.path.exists(self.pickle_path):
             with open(self.pickle_path, 'rb') as file:
                 return pickle.load(file)
         return self
 
     def train(self, network_filename="network_set.xml"):
-
+        """
+        Trains the network on data created by the NSBuilder class and
+        is located in data/out/ folder.
+        """
         # We loaded an existing set from a pickle
         if len(self.solutions_dict) > 0:
             if settings.DEBUG:
@@ -43,13 +61,18 @@ class InputSequencer:
         for train_data_item in train_data_items:
             input_sentence = train_data_item.getElementsByTagName('sentence')[0].firstChild.data
             network_string = train_data_item.getElementsByTagName('node')[0].firstChild.data
-            self.train_sentence(input_sentence, network_string)
+            self.__train_sentence(input_sentence, network_string)
 
         # Save contents to a pickle
         with open(self.pickle_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
-    def train_sentence(self, sentence=None, correct_node_string=None):
+    def __train_sentence(self, sentence=None, correct_node_string=None):
+        """
+        Train a particular sentence given the sentence and the correct parse of the sentence.
+        :param sentence: the sentence to train
+        :param correct_node_string: the correct interpretation of the sentence
+        """
         if sentence is None:
             print("No sentence was supplied to the InputParser.train_sentence function.")
         word_tokens = nltk.word_tokenize(sentence.lower())
@@ -78,8 +101,10 @@ class InputSequencer:
             return
 
         key = "-".join(tag_list)
-        print("Added key: {}".format(key))
-        print("For sentence: {}".format(sentence))
+
+        if settings.DEBUG:
+            print("Added key: {}".format(key))
+            print("For sentence: {}".format(sentence))
 
         self.solutions_dict[key] = solution
 
@@ -87,7 +112,6 @@ class InputSequencer:
         """
         Returns a formatted node for a particular sentence
         :param sentence: the sentence to nodify
-        :return: Node
         """
         if sentence is None:
             print("No sentence was supplied to the InputParser.train_sentence function.")
@@ -105,7 +129,7 @@ class InputSequencer:
             print("Searched for key: {}".format(key))
 
         if settings.DEBUG:
-            print("\nDictionary keys-------------------\n")
+            print("Dictionary keys-------------------")
             for dict_key in self.solutions_dict:
                 print("Dictionary has key: {}".format(dict_key))
 
@@ -137,6 +161,9 @@ class InputSequencer:
 
     @staticmethod
     def __generate_initial_set(count_tuple_list, tag_list):
+        """
+        Generate an initial set of function sequences randomly.
+        """
         initial_set = []
         for i in range(1000):
             function_sequence = []
@@ -155,6 +182,9 @@ class InputSequencer:
 
     @staticmethod
     def __generate_node(function_sequence, tagged_tokens):
+        """
+        Generate a node from a function sequence.
+        """
         node_builder = ObjectNode.Factory()
         for function_tuple in function_sequence:
             count = 0
@@ -173,8 +203,17 @@ class InputSequencer:
         return node_builder.build()
 
     def __find_solution(self, initial_set, correct_node_string, tagged_tokens, max_iterations=100):
-
+        """
+        Find the correct function sequence for a particular sentence.
+        :param initial_set: the initial random set of function sequences
+        :param correct_node_string: the correct interpretation of the sentence
+        :param tagged_tokens: the tagged tokens of the sentence
+        :param max_iterations: the maximum iterations of the genetic algorithm
+        """
         def mutate(child_sequence_set):
+            """
+            Perform a random mutation on a particular child.
+            """
             if settings.DEBUG:
                 print("Genetic algorithm: Child has mutated")
             index = randint(0, (len(child) - 1))
@@ -186,6 +225,9 @@ class InputSequencer:
             return child
 
         def get_corrected_ratio(f_ratio):
+            """
+            Convert the float value into a large integer (or long)
+            """
             return floor(f_ratio * pow(10, 10))
 
         ga_set_list = []
@@ -233,6 +275,7 @@ class InputSequencer:
             for ga_set in ga_set_list:
                 ga_queue.put(ga_set)
 
+            # Start popping parents opf the queue in the order from best to worst
             while not ga_queue.empty():
                 current_ga_set = ga_queue.get()
                 next_ga_set = ga_queue.get()

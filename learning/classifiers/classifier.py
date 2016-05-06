@@ -1,10 +1,20 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/04/2016
+"""
+
 from collections import Counter
 
 import nltk
 
 
 class Classifier:
-
+    """
+    The Classifier class serves as a base class for the SNClassifier and QSClassifier. This Classifier uses
+    a Naive Bayes classifier with various features.
+    """
     def __init__(self):
         self.classifier = None
         self.test_set = []
@@ -16,7 +26,7 @@ class Classifier:
     @staticmethod
     def _sentence_features(sentence):
         """
-        Gets a feature dictionary for a particular sentence to use with the NaiveBayesClassifier
+        Gets a feature dictionary for a particular sentence to use with the NaiveBayesClassifier.
         :param sentence: a sentence to 'featurize'
         :return: a feature dictionary for the sentence
         """
@@ -25,7 +35,7 @@ class Classifier:
         word_tokens = nltk.word_tokenize(sentence)
         tagged_words = nltk.pos_tag(word_tokens)
 
-        # TODO Check if ever called
+        # May cause an error is rare situations
         if not tagged_words:
             return features
 
@@ -62,9 +72,16 @@ class Classifier:
         print(self.classifier.show_most_informative_features(amount))
 
     def classify_text(self, query=""):
+        """
+        Classifies the query into one of the specified classes.
+        """
         return self.classifier.classify(self._sentence_features(query))
 
     def prob_classify_text(self, query=""):
+        """
+        Classifies the query into one of the specified classes and returns the probability
+        that it is correct.
+        """
         probabilities = self.classifier.prob_classify(self._sentence_features(query))
         for sample in probabilities.samples():
             return sample, probabilities.prob(sample)

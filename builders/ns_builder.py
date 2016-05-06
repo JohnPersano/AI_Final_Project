@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   05/01/2016
+"""
+
 import os
 from xml.dom.minidom import Document
 
@@ -37,11 +44,11 @@ class NSBuilder:
 
     def create_standard_set(self):
         """
-        Create a standard working set
+        Create a standard working set of data for the InputParser to train on
         """
-        # We loaded an existing set from a pickle
+        # We loaded an existing set from a pickle, do not proceed further
         if len(self._build_list) > 0:
-            self.build()
+            self.__build()
             if settings.DEBUG:
                 print("Loaded from pickle!")
             return
@@ -50,40 +57,41 @@ class NSBuilder:
             print("Building network set...")
 
         # Add standard items to the network training set
-        self.add("a large fish has shiny scales", values=["large", "fish"], relations=["has"],
-                 relation_objects=["shiny", "scales"])
-        self.add("a bass is a vertebrate", values=["bass"], relations=["is", "a"],
-                 relation_objects=["vertebrate"])
-        self.add("a sun fish has shiny scales", values=["sun", "fish"], relations=["has"],
-                 relation_objects=["shiny", "scales"])
-        self.add("a whale has blue skin", values=["whale"], relations=["has"],
-                 relation_objects=["blue", "skin"])
-        self.add("water is a liquid", values=["water"], relations=["is", "a"],
-                 relation_objects=["liquid"])
-        self.add("a strong whale eats plankton", values=["strong", "whale"], relations=["eats"],
-                 relation_objects=["plankton"])
-        self.add("plankton are animals", values=["plankton"], relations=["are"],
-                 relation_objects=["animals"])
-        self.add("whales are gentle", values=["whales"], relations=["are"],
-                 relation_objects=["gentle"])
-        self.add("white sharks are mean", values=["white", "sharks"], relations=["are"],
-                 relation_objects=["mean"])
-        self.add("sharks have sharp teeth", values=["sharks"], relations=["have"],
-                 relation_objects=["sharp", "teeth"])
+        self.__add("a large fish has shiny scales", values=["large", "fish"], relations=["has"],
+                   relation_objects=["shiny", "scales"])
+        self.__add("a bass is a vertebrate", values=["bass"], relations=["is", "a"],
+                   relation_objects=["vertebrate"])
+        self.__add("a sun fish has shiny scales", values=["sun", "fish"], relations=["has"],
+                   relation_objects=["shiny", "scales"])
+        self.__add("a whale has blue skin", values=["whale"], relations=["has"],
+                   relation_objects=["blue", "skin"])
+        self.__add("water is a liquid", values=["water"], relations=["is", "a"],
+                   relation_objects=["liquid"])
+        self.__add("a strong whale eats plankton", values=["strong", "whale"], relations=["eats"],
+                   relation_objects=["plankton"])
+        self.__add("plankton are animals", values=["plankton"], relations=["are"],
+                   relation_objects=["animals"])
+        self.__add("whales are gentle", values=["whales"], relations=["are"],
+                   relation_objects=["gentle"])
+        self.__add("white sharks are mean", values=["white", "sharks"], relations=["are"],
+                   relation_objects=["mean"])
+        self.__add("sharks have sharp teeth", values=["sharks"], relations=["have"],
+                   relation_objects=["sharp", "teeth"])
 
         # Save contents to a pickle
         with open(self.pickle_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+        self.__build()
 
-        self.build()
-
-    def build(self):
+    def __build(self):
+        """
+        Build the network_set.xml file. This is an internal method and should not be called directly.
+        """
         document = Document()
         root = document.createElement("root")
         document.appendChild(root)
 
         out_file = open(self.n_out, "w")
-
         for tuple_value in self._build_list:
             input_sentence = tuple_value[0]
             node_string = tuple_value[1]
@@ -107,7 +115,10 @@ class NSBuilder:
         if settings.DEBUG:
             print("Network Set built!")
 
-    def add(self, sentence, values=None, relations=None, relation_objects=None):
+    def __add(self, sentence, values=None, relations=None, relation_objects=None):
+        """
+        Add a node to the network set.
+        """
         # Default values (cannot exist as parameter)
         if values is None:
             values = []
@@ -131,4 +142,3 @@ class NSBuilder:
         node_string = node.to_string()
 
         self._build_list.append((sentence, node_string))
-

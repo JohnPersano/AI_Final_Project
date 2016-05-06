@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/27/2016
+"""
+
 import os
 import random
 import string
@@ -10,7 +17,9 @@ import settings
 
 class QSBuilder:
     """
-    Class that handles question/statement file building for the Bayes classifier
+    The QSBuilder class handles question/statement file building for the QSClassifier. The QS builder takes
+    data from the presidential inaugural addresses along with data from past TREC competitions
+    to build the files.
     """
     qsets_files = ["QA2004_testset.xml", "QA2005_testset.xml", "QA2006_testset.xml", "QA2007_testset.xml"]
     punct_regex = nltk.re.compile('[%s]' % nltk.re.escape(string.punctuation))
@@ -30,8 +39,7 @@ class QSBuilder:
 
     def create_standard_set(self):
         """
-        Generate a fresh set of question/statement files
-        :return: None
+        Generate a fresh set of question/statement files.
         """
         if settings.DEBUG:
             print("Generating question/statement files...")
@@ -45,7 +53,6 @@ class QSBuilder:
     def __append_aux_questions(self):
         """
         Appends auxiliary questions since there are more statements than questions in typical corpora
-        :return: None
         """
         qsets_directory = settings.DATA_QSETS
 
@@ -66,8 +73,7 @@ class QSBuilder:
 
     def __append_corpus_data(self):
         """
-        Appends data to the questions and statements files from the Gutenberg corpus
-        :return: None
+        Appends data to the questions and statements files from the inaugural address corpus
         """
         sentences = []
 
@@ -76,7 +82,6 @@ class QSBuilder:
             raw_text = inaugural.raw(fileid)
             sentence_tokens = nltk.sent_tokenize(raw_text)
             sentences += sentence_tokens
-
         random.shuffle(sentences)
         random.shuffle(sentences)
         random.shuffle(sentences)

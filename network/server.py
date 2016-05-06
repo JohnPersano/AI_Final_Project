@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/27/2016
+"""
+
 import socket
 
 import settings
@@ -38,5 +45,3 @@ class NetworkServer:
     def send_data(self, message):
         self.connection.sendall(message.encode())
         self.connection.close()
-
-

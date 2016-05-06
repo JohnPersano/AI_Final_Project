@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/27/2016
+"""
+
 import nltk
 
 from semantics.node import Node

@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/27/2016
+"""
+
 import nltk
 
 from semantics.node import Node
@@ -5,12 +12,20 @@ from semantics.relation_node import RelationNode
 
 
 class ObjectNode(Node):
+    """
+    The ObjectNode class represents nodes that are not relations. A 'dog'
+    is an example of an object node. ObjectNodes are related to each other
+    to links of RelationNodes.
+    """
     type = "ObjectNode"
 
     def get_type(self):
         return self.type
 
     class Factory:
+        """
+        Factory class to help generate nodes for the InputSequencer.
+        """
         def __init__(self):
             self.value_tokens = []
             self.relations = []
@@ -42,8 +57,6 @@ class ObjectNode(Node):
                 relationship_object = ObjectNode()
                 relationship_object_value = " ".join(self.relation_objects)
                 relationship_object.set_value(relationship_object_value)
-
-                # $node (is a) (cool thing)
                 node.add_out_relationship((relationship, relationship_object))
             return node
 
@@ -72,7 +85,6 @@ class ObjectNode(Node):
         self._key = "-".join(self.value_tokens)
         self.value = value
 
-    # TODO DOC inherited_by equivalent
     def add_in_relationship(self, relationship_tuple=None):
         if relationship_tuple is None:
             return

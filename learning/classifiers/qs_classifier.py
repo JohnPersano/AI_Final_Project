@@ -1,3 +1,10 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   04/04/2016
+"""
+
 import os
 import pickle
 import random
@@ -10,12 +17,20 @@ from learning.classifiers.classifier import Classifier
 
 
 class QSClassifier(Classifier):
+    """
+    The QSClassifier attempts to classify a query into a sentence or a question based
+    on its content.
+    """
     pickle_name = "input_classifier.pickle"
 
     def __init__(self):
         super().__init__()
 
     def train(self, q_out="questions_out.txt", s_out="sentences_out.txt"):
+        """
+        Train the classifier on the appropriate data set. This classifier uses data constructed by the
+        QSBuilder class.
+        """
         q_out = os.path.join(settings.DATA_OUT, q_out)
         s_out = os.path.join(settings.DATA_OUT, s_out)
 
@@ -33,6 +48,7 @@ class QSClassifier(Classifier):
         feature_sets = [(super(QSClassifier, self)._sentence_features(n), sentiment)
                         for (n, sentiment) in labeled_names]
 
+        # Split by percentage
         training_index = floor(len(feature_sets) * .66)
         test_index = floor(len(feature_sets) * .34)
 

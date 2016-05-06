@@ -10,7 +10,7 @@ import nltk
 from utils import Utils
 
 
-class QueryHadndler:
+class QueryHandler:
     """
     The QueryHandler class is used to query answers from the semantic network. The semantic
     network's information is queried in every direction to ensure the data is completely utilized.
@@ -54,6 +54,7 @@ class QueryHadndler:
         :param query: the query to query
         :return: the best answer string or an empty string
         """
+        initial_confidence = 0.99
 
         # Get rid of numbers and punctuation
         query = Utils.strip_sentence(query)
@@ -63,6 +64,17 @@ class QueryHadndler:
             print("User input tokens: {}".format(query_tokens))
             user_input_sentiment = self.__calculate_sentiment(self.sn_classifier, query)
             print("User input sentiment: {}".format(user_input_sentiment))
+
+        # Initial confidence should go down if query words aren't known
+        for query_token in query_tokens:
+            node = self.semantic_network_dictionary.get(query_token[0], None)
+            if node is None:
+                if 'NN' in query_token[1]:
+                    initial_confidence -= 0.15
+                elif 'JJ' in query_token[1]:
+                    initial_confidence -= 0.08
+                else:
+                    initial_confidence -= 0.04
 
         # Get the bigrams and unigrams of the query as lists
         bigrams = list(nltk.bigrams(query_tokens))
@@ -96,37 +108,26 @@ class QueryHadndler:
         # Search known bigrams in the dictionary for through relationships
         for bigram_node in known_bigrams:
             if bigram_node.get_type() == "RelationNode":
-                answer_contenders += self.__get_bigram_relationnode_contenders(bigram_node, bigram_keys, unigram_keys)
+                answer_contenders += self.__get_bigram_relationnode_contenders(
+                    bigram_node, known_bigrams, known_unigrams, query)
             elif bigram_node.get_type() == "ObjectNode":
-                answer_contenders += self.__get_bigram_objectnode_contenders(bigram_node, bigram_keys, unigram_keys)
+                answer_contenders += self.__get_bigram_objectnode_contenders(
+                    bigram_node, known_bigrams, known_unigrams, query)
         if self.debug:
             print("Answer contenders after bigram searches: {}".format(answer_contenders))
 
         # Search known unigrams in the dictionary for through relationships, this may be less accurate
         for unigram_node in known_unigrams:
             if unigram_node.get_type() == "RelationNode":
-                answer_contenders += self.__get_unigram_relationnode_contenders(unigram_node, bigram_keys, unigram_keys)
+                answer_contenders += self.__get_unigram_relationnode_contenders(
+                    unigram_node, known_bigrams, known_unigrams, query)
             elif unigram_node.get_type() == "ObjectNode":
-                answer_contenders += self.__get_unigram_objectnode_contenders(unigram_node, bigram_keys, unigram_keys)
+                answer_contenders += self.__get_unigram_objectnode_contenders(
+                    unigram_node, known_bigrams, known_unigrams, query)
         if self.debug:
             print("Answer contenders after unigram searches: {}".format(answer_contenders))
 
-        for unigram_node in known_unigrams:
-            if unigram_node.get_type() == "ObjectNode":
-                for in_relationship in unigram_node.in_relationships:
-                    in_relationship_object = in_relationship[0]
-                    in_relationship_object_tokens = nltk.word_tokenize(in_relationship_object)
-                    in_relationship_object_key = "-".join(in_relationship_object_tokens)
-                    node = self.semantic_network_dictionary.get(in_relationship_object_key, None)
-                    answer_contenders += self.__get_unigram_objectnode_contenders(node, bigram_keys, unigram_keys)
-                for out_relationship in unigram_node.out_relationships:
-                    out_relationship_object = out_relationship[1]
-                    out_relationship_object_tokens = nltk.word_tokenize(out_relationship_object)
-                    out_relationship_object_key = "-".join(out_relationship_object_tokens)
-                    node = self.semantic_network_dictionary.get(out_relationship_object_key, None)
-                    answer_contenders += self.__get_unigram_objectnode_contenders(node, bigram_keys, unigram_keys)
-
-        return self.__select_hypothesis(answer_contenders)
+        return self.__select_hypothesis(answer_contenders, initial_confidence)
 
     @staticmethod
     def __calculate_sentiment(classifier, value):
@@ -147,214 +148,143 @@ class QueryHadndler:
         else:
             return classification_probability * -1
 
-    def __get_bigram_relationnode_contenders(self, bigram_node, bigram_keys, unigram_keys):
+    @staticmethod
+    def __get_bigram_relationnode_contenders(bigram_node, known_bigrams, known_unigrams, query):
         answer_contenders = []
-        # Check the in objects for any through relationships
-        for in_object in bigram_node.in_objects:
-            in_object_tokens = nltk.word_tokenize(in_object)
-            in_object_key = "-".join(in_object_tokens)
-            if in_object_key in bigram_keys or in_object_key in unigram_keys:
-                node = self.semantic_network_dictionary.get(in_object_key, None)
-                for out_relationship in node.out_relationships:
-                    if out_relationship[0] == bigram_node.get_value():
-                        answer_contenders.append((0, in_object, bigram_node.get_value(), out_relationship[1]))
-            # Start cutting up any in object bigrams in the search for a relationship
-            for in_object_token in in_object_tokens:
-                if in_object_token in bigram_keys or in_object_token in unigram_keys:
-                    node = self.semantic_network_dictionary.get(in_object_key, None)
-                    for out_relationship in node.out_relationships:
-                        if out_relationship[0] == bigram_node.get_value():
-                            answer_contenders.append((0, in_object, bigram_node.get_value(), out_relationship[1]))
-
-        # Check the out objects for any through relationships
         for out_object in bigram_node.out_objects:
-            out_object_tokens = nltk.word_tokenize(out_object)
-            out_object_key = "-".join(out_object_tokens)
-            if out_object_key in bigram_keys or out_object_key in unigram_keys:
-                node = self.semantic_network_dictionary.get(out_object_key, None)
-                for in_relationship in node.in_relationships:
-                    if in_relationship[1] == bigram_node.get_value():
-                        answer_contenders.append((0, in_relationship[0], bigram_node.get_value(), out_object))
-            # Start cutting up any out object bigrams in the search for a relationship
-            for out_object_token in out_object_tokens:
-                if out_object_token in bigram_keys or out_object_token in unigram_keys:
-                    node = self.semantic_network_dictionary.get(out_object_key, None)
-                    for in_relationship in node.in_relationships:
-                        if in_relationship[1] == bigram_node.get_value():
+            """
+            This loop will find highly answers if the RL network knows "A dog has a red coat" and
+            the query is "What has a red coat?"
+            """
+            for known_bigram in known_bigrams:
+                if known_bigram.get_value() == out_object:
+                    for in_relationship in known_bigram.in_relationships:
+                        if in_relationship[1] == bigram_node:
+                            answer_contenders.append((0, in_relationship[0], bigram_node.get_value(), out_object))
+            """
+            This loop will find highly answers if the RL network knows "A dog can have fur" and
+            the query is "What can have fur?"
+            """
+            for known_unigram in known_unigrams:
+                if known_unigram.get_value() == out_object:
+                    for in_relationship in known_unigram.in_relationships:
+                        if in_relationship[1] == bigram_node:
                             answer_contenders.append((0, in_relationship[0], bigram_node.get_value(), out_object))
         return answer_contenders
 
-    def __get_bigram_objectnode_contenders(self, bigram_node, bigram_keys, unigram_keys, sn_modifier=0.0):
+    def __get_bigram_objectnode_contenders(self, bigram_node, known_bigrams, known_unigrams, query):
+        query_sentiment = self.__calculate_sentiment(self.sn_classifier, query)
+
         answer_contenders = []
-        # Examine in relationships of the object node
         for in_relationship in bigram_node.in_relationships:
-            print("In relationship = {}".format(in_relationship))
+            in_relationship_sentiment = self.__calculate_sentiment(self.sn_classifier, in_relationship[1])
+            """
+            This loop will find highly likely answers if the RL network knows "A dog has a red coat" and
+            the query is "What has a red coat?"
+            """
+            for known_bigram in known_bigrams:
+                if known_bigram.get_value() == in_relationship[1]:
+                    answer_contenders.append((0, in_relationship[0], in_relationship[1], bigram_node.get_value()))
+            """
+            This loop will find highly likely answers if the RL network knows "A dog has red fur" and
+            the query is "What has red fur?"
+            """
+            for known_unigram in known_unigrams:
+                if known_unigram.get_value() == in_relationship[1]:
+                    answer_contenders.append((0, in_relationship[0], in_relationship[1], bigram_node.get_value()))
 
-            # Calculate in relationship sentiment
-            in_relation_sn_tuple = self.sn_classifier.prob_classify_text(in_relationship[1])
-            in_relation_sentiment = in_relation_sn_tuple[1]
-            if 'negative' in in_relation_sn_tuple[0]:
-                in_relation_sentiment *= -1
+            """
+            This loop will find possible answers if the RL network knows "A dog has a red coat" and
+            the query is "What may have a red coat?"
+            """
+            sn_difference = abs(in_relationship_sentiment - query_sentiment)
+            if sn_difference < self.max_sn_difference:
+                answer_contenders.append(
+                    (sn_difference, in_relationship[0], in_relationship[1], bigram_node.get_value()))
 
-            # Grab the relation, tokenize it, and get its key
-            in_relationship_relation = in_relationship[1]
-            in_relationship_relation_tokens = nltk.word_tokenize(in_relationship_relation)
-            in_relationship_relation_key = "-".join(in_relationship_relation_tokens)
-
-            # Check for a direct match of the in relationship to a sentence bigram
-            if in_relationship_relation_key in bigram_keys or in_relationship_relation_key in unigram_keys:
-                node = self.semantic_network_dictionary.get(in_relationship_relation_key, None)
-                # Iterate through the nodes with an out relation that matches the
-                for in_object in node.in_objects:
-                    in_object_tokens = nltk.word_tokenize(in_object)
-                    in_object_key = "-".join(in_object_tokens)
-                    in_object_node = self.semantic_network_dictionary.get(in_object_key, None)
-                    for out_relationship in in_object_node.out_relationships:
-                        out_relationship_relation_tokens = nltk.word_tokenize(out_relationship[0])
-                        out_relationship_relation_key = "-".join(out_relationship_relation_tokens)
-                        if out_relationship_relation_key == in_relationship_relation_key:
-                            answer_contenders.append((0, in_object, in_relationship_relation,
-                                                      out_relationship[1]))
-
-            # Start cutting up any in relationship bigrams in the search for a through relationship
-            for in_relationship_token in in_relationship_relation_tokens:
-                # Calculate in_relationship_token sentiment
-                in_relationship_token_sn_tuple = self.sn_classifier.prob_classify_text(in_relationship_token)
-                in_relationship_token_sentiment = in_relationship_token_sn_tuple[1]
-                if 'negative' in in_relationship_token_sn_tuple[0]:
-                    in_relationship_token_sentiment *= -1
-
-                # The sentiment difference between the two will dictate if we can interchange the relationships
-                sn_difference = abs(in_relation_sentiment - in_relationship_token_sentiment)
-                sn_difference += sn_modifier
-                # The chopped up relation was too different from the original
-                if sn_difference > self.max_sn_difference:
-                    continue
-                # Check if the sentence contains any part of a known relationship
-                if in_relationship_token in unigram_keys:
-                    node = self.semantic_network_dictionary.get(in_relationship_relation_key, None)
-                    for in_object in node.in_objects:
-                        in_object_tokens = nltk.word_tokenize(in_object)
-                        in_object_key = "-".join(in_object_tokens)
-                        in_object_node = self.semantic_network_dictionary.get(in_object_key, None)
-                        for out_relationship in in_object_node.out_relationships:
-                            out_relationship_relation_tokens = nltk.word_tokenize(out_relationship[0])
-                            out_relationship_relation_key = "-".join(out_relationship_relation_tokens)
-                            if out_relationship_relation_key == in_relationship_relation_key:
-                                answer_contenders.append((0, in_object, in_relationship_relation,
-                                                          out_relationship[1]))
-
-                # No part of the sentence contains any part of a known relation, but the sentiment is similar
-                sn_difference += .20
-                if sn_difference > self.max_sn_difference:
-                    continue
-                node = self.semantic_network_dictionary.get(in_relationship_relation_key, None)
-                for in_object in node.in_objects:
-                    in_object_tokens = nltk.word_tokenize(in_object)
-                    in_object_key = "-".join(in_object_tokens)
-                    in_object_node = self.semantic_network_dictionary.get(in_object_key, None)
-                    for out_relationship in in_object_node.out_relationships:
-                        out_relationship_relation_tokens = nltk.word_tokenize(out_relationship[0])
-                        out_relationship_relation_key = "-".join(out_relationship_relation_tokens)
-                        if out_relationship_relation_key == in_relationship_relation_key:
-                            answer_contenders.append((0, in_object, in_relationship_relation,
-                                                      out_relationship[1]))
-
-        # Examine out relationships of the object node
         for out_relationship in bigram_node.out_relationships:
-            # Calculate out relationship sentiment
-            out_relation_sn_tuple = self.sn_classifier.prob_classify_text(out_relationship[0])
-            out_relation_sentiment = out_relation_sn_tuple[1]
-            if 'negative' in out_relation_sn_tuple[0]:
-                out_relation_sentiment *= -1
+            out_relationship_sentiment = self.__calculate_sentiment(self.sn_classifier, out_relationship[0])
+            """
+            This loop will find highly likely answers if the RL network knows "A dirty dog has a red coat" and
+            the query is "A dirty dog has a what?"
+            """
+            for known_bigram in known_bigrams:
+                if known_bigram.get_value() == out_relationship[0]:
+                    answer_contenders.append((0, bigram_node.get_value(), out_relationship[0], out_relationship[1]))
+            """
+            This loop will find highly likely answers if the RL network knows "A dirty dog has red fur" and
+            the query is "A dirty dog has what?"
+            """
+            for known_unigram in known_unigrams:
+                if known_unigram.get_value() == out_relationship[0]:
+                    answer_contenders.append((0, bigram_node.get_value(), out_relationship[0], out_relationship[1]))
 
-            # Grab the relation, tokenize it, and get its key
-            out_relationship_relation = out_relationship[0]
-            out_relationship_relation_tokens = nltk.word_tokenize(out_relationship_relation)
-            out_relationship_relation_key = "-".join(out_relationship_relation_tokens)
+            """
+             This loop will find possible answers if the RL network knows "A dirty dog has red fur" and
+             the query is "A dirty dog may have what?"
+             """
+            sn_difference = abs(out_relationship_sentiment - query_sentiment)
+            if sn_difference < self.max_sn_difference:
+                answer_contenders.append(
+                    (sn_difference, bigram_node.get_value(), out_relationship[0], out_relationship[1]))
 
-            # Check for a direct match of the out relationship to a sentence bigram
-            if out_relationship_relation_key in bigram_keys or out_relationship_relation_key in unigram_keys:
-                node = self.semantic_network_dictionary.get(out_relationship_relation_key, None)
-                for out_object in node.out_objects:
-                    out_object_tokens = nltk.word_tokenize(out_object)
-                    out_object_key = "-".join(out_object_tokens)
-                    out_object_node = self.semantic_network_dictionary.get(out_object_key, None)
-                    for in_relationship in out_object_node.in_relationships:
-                        in_relationship_relation_tokens = nltk.word_tokenize(in_relationship[1])
-                        in_relationship_relation_key = "-".join(in_relationship_relation_tokens)
-                        if in_relationship_relation_key == out_relationship_relation_key:
-                            answer_contenders.append(
-                                (0, in_relationship[0], out_relationship_relation, out_object))
-
-            # Start cutting up any in relationship bigrams in the search for a through relationship
-            for out_relationship_token in out_relationship_relation_tokens:
-                # Calculate in_relationship_token sentiment
-                out_relationship_token_sn_tuple = self.sn_classifier.prob_classify_text(out_relationship_token)
-                out_relationship_token_sentiment = out_relationship_token_sn_tuple[1]
-                if 'negative' in out_relationship_token_sn_tuple[0]:
-                    out_relationship_token_sentiment *= -1
-
-                # The sentiment difference between the two will dictate if we can interchange the relationships
-                sn_difference = abs(out_relation_sentiment - out_relationship_token_sentiment)
-                # The chopped up relation was too different from the original
-                if sn_difference > self.max_sn_difference:
-                    continue
-
-                # Check if the sentence contains any part of a known relationship
-                if out_relationship_token in unigram_keys:
-                    node = self.semantic_network_dictionary.get(out_relationship_relation_key, None)
-                    for out_object in node.out_objects:
-                        out_object_tokens = nltk.word_tokenize(out_object)
-                        out_object_key = "-".join(out_object_tokens)
-                        out_object_node = self.semantic_network_dictionary.get(out_object_key, None)
-                        for in_relationship in out_object_node.in_relationships:
-                            in_relationship_relation_tokens = nltk.word_tokenize(in_relationship[1])
-                            in_relationship_relation_key = "-".join(in_relationship_relation_tokens)
-                            if out_relationship_relation_key == in_relationship_relation_key:
-                                answer_contenders.append(
-                                    (0, in_relationship[0], out_relationship_relation, out_object))
-                # No part of the sentence contains any part of a known relation, but the sentiment is similar
-                sn_difference += .20
-                if sn_difference > self.max_sn_difference:
-                    continue
-                node = self.semantic_network_dictionary.get(out_relationship_relation_key, None)
-                for out_object in node.out_objects:
-                    out_object_tokens = nltk.word_tokenize(out_object)
-                    out_object_key = "-".join(out_object_tokens)
-                    out_object_node = self.semantic_network_dictionary.get(out_object_key, None)
-                    for in_relationship in out_object_node.in_relationships:
-                        in_relationship_relation_tokens = nltk.word_tokenize(in_relationship[1])
-                        in_relationship_relation_key = "-".join(in_relationship_relation_tokens)
-                        if out_relationship_relation_key == in_relationship_relation_key:
-                            in_relationship_oblect_tokens = nltk.word_tokenize(in_relationship[1])
-                            in_relationship_object_key = "-".join(in_relationship_oblect_tokens)
-                            if in_relationship_object_key in bigram_keys or in_relationship_object_key in unigram_keys:
-                                answer_contenders.append(
-                                    (0, in_relationship[0], out_relationship_relation, out_object))
+            """
+             This loop will find possible answers if the RL network knows "A dirty dog has red fur", "Red is
+             a color" and the query is "A dirty dog has what color fur?"
+             """
+            for known_unigram in known_unigrams:
+                if known_unigram.get_value() == out_relationship[0]:
+                    out_relationship_object = out_relationship[1]
+                    out_relationship_object_tokens = nltk.word_tokenize(out_relationship_object)
+                    for token in out_relationship_object_tokens:
+                        node = self.semantic_network_dictionary.get(token, None)
+                        if node.get_type() == "ObjectNode":
+                            for inner_in_relationship in node.in_relationships:
+                                for inner_known_unigram in known_unigrams:
+                                    # If color exists in  sentence
+                                    if inner_known_unigram.get_value() == inner_in_relationship[0]:
+                                        inner_in_relationship_sentiment = self.__calculate_sentiment(
+                                            self.sn_classifier, inner_in_relationship[1])
+                                        inner_sn_difference = abs(
+                                            out_relationship_sentiment - inner_in_relationship_sentiment)
+                                        if inner_sn_difference < self.max_sn_difference:
+                                            answer_contenders.append(
+                                                (inner_sn_difference, bigram_node.get_value(), out_relationship[0],
+                                                 out_relationship[1]))
+                            for inner_out_relationship in node.out_relationships:
+                                for inner_known_unigram in known_unigrams:
+                                    # If color exists in  sentence
+                                    if inner_known_unigram.get_value() == inner_out_relationship[1]:
+                                        inner_out_relationship_sentiment = self.__calculate_sentiment(
+                                            self.sn_classifier, inner_out_relationship[0])
+                                        inner_sn_difference = abs(
+                                            out_relationship_sentiment - inner_out_relationship_sentiment)
+                                        if inner_sn_difference < self.max_sn_difference:
+                                            answer_contenders.append(
+                                                (inner_sn_difference, bigram_node.get_value(), out_relationship[0],
+                                                    out_relationship[1]))
         return answer_contenders
 
-    def __get_unigram_relationnode_contenders(self, unigram_node, bigram_keys, unigram_keys):
-        return self.__get_bigram_relationnode_contenders(unigram_node, bigram_keys, unigram_keys)
-
-    def __get_unigram_objectnode_contenders(self, unigram_node, bigram_keys, unigram_keys):
+    def __get_unigram_relationnode_contenders(self, unigram_node, bigram_keys, unigram_keys, query):
         answer_contenders = []
-        answer_contenders += self.__get_bigram_objectnode_contenders(unigram_node, bigram_keys, unigram_keys,
-                                                                     sn_modifier=0.20)
+        answer_contenders += self.__get_bigram_relationnode_contenders(unigram_node, bigram_keys, unigram_keys, query)
+        return answer_contenders
+
+    def __get_unigram_objectnode_contenders(self, unigram_node, bigram_keys, unigram_keys, query):
+        answer_contenders = []
+        answer_contenders += self.__get_bigram_objectnode_contenders(unigram_node, bigram_keys, unigram_keys, query)
 
         for constituent_of in unigram_node.constituents_of:
             constituent_of_key = "-".join(nltk.word_tokenize(constituent_of))
             constituent_of_node = self.semantic_network_dictionary.get(constituent_of_key, None)
-
-            # The node should never be None, but just in case
-            if constituent_of_node is not None:
-                answer_contenders += self.__get_bigram_objectnode_contenders(constituent_of_node, bigram_keys,
-                                                                             unigram_keys, sn_modifier=0.30)
+            answer_contenders += self.__get_bigram_objectnode_contenders(constituent_of_node, bigram_keys, unigram_keys, query)
         return answer_contenders
 
     @staticmethod
-    def __select_hypothesis(answer_contenders):
-
+    def __select_hypothesis(answer_contenders, initial_confidence):
+        """
+        Select a final hypothesis from a list of answer contenders.
+        """
         def in_hypotheses_list(hypotheses_list, value):
             for item in hypotheses_list:
                 if item[2] == value:
@@ -377,15 +307,16 @@ class QueryHadndler:
                 if inner_hypothesis[2] == hypothesis[2]:
                     hypothesis[0] += 1
 
+        # Sort by occurrence count and then by sentiment difference
         initial_hypotheses.sort(key=lambda x: (int(x[0]), float(-x[1])), reverse=True)
 
         hypotheses = []
         for initial_hypothesis in initial_hypotheses:
             if not in_hypotheses_list(hypotheses, initial_hypothesis[2]):
                 hypotheses.append(initial_hypothesis)
-
         if len(hypotheses) > 0:
             first_hypothesis = hypotheses[0]
+            print("Confidence = {}".format(initial_confidence - first_hypothesis[1]))
             return first_hypothesis[2]
         else:
             return QueryHandler.not_found_message

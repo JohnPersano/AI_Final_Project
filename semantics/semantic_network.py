@@ -1,15 +1,32 @@
+"""
+CSCI 6660 Final Project
+
+Author: John Persano
+Date:   03/12/2016
+"""
+
 import os
 import pickle
 
-import nltk
-
 import settings
-from semantics.node import Node
 from semantics.object_node import ObjectNode
 from semantics.relation_node import RelationNode
 
 
 class SemanticNetwork:
+    """
+    The SemanticNetwork is a hybrid network we refer to as a relational network.
+    The underlying data structure is a dictionary
+
+    Example:
+        |-------------------------------------------------------------------------|
+        |Key      |   Value                                                       |
+        |-------------------------------------------------------------------------|
+        |rabbit   |   out_relationship["has", "fur"] type=ObjectNode              |
+        |has      |   in_objects["rabbit"] out_objects=["fur"] type=RelationNode  |
+        |fur      |   in_relationship["rabbit", "has"] type=ObjectNode            |
+        |-------------------------------------------------------------------------|
+    """
     pickle_name = "semantic_network.pickle"
 
     # Instantiate the tree to include the root mammal node
