@@ -17,6 +17,7 @@ from semantics.query_handler import QueryHandler
 
 from semantics.semantic_network import SemanticNetwork
 
+
 def clean_start():
     """
     Delete all pickles and builder files for a clean start.
@@ -25,6 +26,7 @@ def clean_start():
     for out_file in os.listdir(output_directory):
         out_file_path = os.path.join(output_directory, out_file)
         os.unlink(out_file_path)
+
 
 if __name__ == "__main__":
 
