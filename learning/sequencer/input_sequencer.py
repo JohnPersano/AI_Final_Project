@@ -7,16 +7,33 @@ from xml.dom import minidom
 import nltk
 from math import floor
 
+import pickle
+
 import settings
 from semantics.object_node import ObjectNode
 
 
 class InputSequencer:
+    pickle_name = "input_sequencer.pickle"
 
     def __init__(self):
         self.solutions_dict = {}
+        self.pickle_path = os.path.join(settings.DATA_OUT, self.pickle_name)
+
+    def load(self):
+        if os.path.exists(self.pickle_path):
+            with open(self.pickle_path, 'rb') as file:
+                return pickle.load(file)
+        return self
 
     def train(self, network_filename="network_set.xml"):
+
+        # We loaded an existing set from a pickle
+        if len(self.solutions_dict) > 0:
+            if settings.DEBUG:
+                print("Loaded from pickle!")
+            return
+
         network_filename = os.path.join(settings.DATA_OUT, network_filename)
 
         # Files contain XML data
@@ -28,10 +45,14 @@ class InputSequencer:
             network_string = train_data_item.getElementsByTagName('node')[0].firstChild.data
             self.train_sentence(input_sentence, network_string)
 
+        # Save contents to a pickle
+        with open(self.pickle_path, 'wb') as output:
+            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+
     def train_sentence(self, sentence=None, correct_node_string=None):
         if sentence is None:
             print("No sentence was supplied to the InputParser.train_sentence function.")
-        word_tokens = nltk.word_tokenize(sentence)
+        word_tokens = nltk.word_tokenize(sentence.lower())
         tagged_tokens = nltk.pos_tag(word_tokens)  # [('dog', 'NN'), ('is', 'VBZ'), ('mammal', 'JJ')]
 
         tag_list = []  # ['NN', 'VBZ', 'AMNN']
@@ -58,6 +79,8 @@ class InputSequencer:
 
         key = "-".join(tag_list)
         print("Added key: {}".format(key))
+        print("For sentence: {}".format(sentence))
+
         self.solutions_dict[key] = solution
 
     def parse_to_node(self, sentence):
@@ -69,7 +92,7 @@ class InputSequencer:
         if sentence is None:
             print("No sentence was supplied to the InputParser.train_sentence function.")
 
-        word_tokens = nltk.word_tokenize(sentence)
+        word_tokens = nltk.word_tokenize(sentence.lower())
         pos_tuples = nltk.pos_tag(word_tokens)
 
         tag_list = []  # ['NN', 'VBZ', 'AMNN']

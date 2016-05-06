@@ -37,8 +37,6 @@ class ObjectNode(Node):
             if len(self.relations) >= 0 and len(self.relation_objects) > 0:
                 relationship = RelationNode()
                 relationship_value = " ".join(self.relations)
-                print("\n\n\n")
-                print(relationship_value)
                 relationship.set_value(relationship_value, self.sn_classifier)
 
                 relationship_object = ObjectNode()
@@ -52,7 +50,7 @@ class ObjectNode(Node):
     def __init__(self):
         super().__init__(self.type)
         self._key = ""               # "red-dog"
-        self.value = ""             # "red dog"
+        self.value = ""              # "red dog"
         self.value_tokens = []       # [red, dog]
         self.constituents_of = []    # for red node = ["red dog"]
         self.in_relationships = []   # [("dog", "is a"]

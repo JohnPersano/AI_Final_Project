@@ -38,6 +38,7 @@ class SNClassifier(Classifier):
 
         if settings.DEBUG:
             print("Sentiment classifier trained successfully")
+            self.print_accuracy()
 
     def to_pickle(self):
         pickle_name = os.path.join(settings.DATA_OUT, self.pickle_name)

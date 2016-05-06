@@ -26,15 +26,15 @@ class QSClassifier(Classifier):
         question_sentences = [sentence for sentence in questions_content.split('\n')]
         statements_content = open(s_out).read()
         statements_sentences = [sentence for sentence in statements_content.split('\n')]
-        labeled_names = ([(sentence, 'question') for sentence in question_sentences] +
-                         [(sentence, 'statement') for sentence in statements_sentences])
+        labeled_names = ([(sentence, 'question') for sentence in question_sentences[:500]] +
+                         [(sentence, 'statement') for sentence in statements_sentences[:500]])
         random.shuffle(labeled_names)
 
         feature_sets = [(super(QSClassifier, self)._sentence_features(n), sentiment)
                         for (n, sentiment) in labeled_names]
 
-        training_index = floor(len(feature_sets) * .70)
-        test_index = floor(len(feature_sets) * .30)
+        training_index = floor(len(feature_sets) * .66)
+        test_index = floor(len(feature_sets) * .34)
 
         self.training_set = feature_sets[training_index:]
         self.test_set = feature_sets[:test_index]
@@ -42,6 +42,7 @@ class QSClassifier(Classifier):
 
         if settings.DEBUG:
             print("Question/statement classifier trained successfully")
+            self.print_accuracy()
 
     def to_pickle(self):
         pickle_name = os.path.join(settings.DATA_OUT, self.pickle_name)

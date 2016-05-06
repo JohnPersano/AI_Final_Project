@@ -83,9 +83,6 @@ class SemanticNetwork:
                 new_object.set_value(out_relationship[1])
                 temp_object = new_object
             relation_object = temp_object
-
-            print("In relat : {}".format(out_relationship[0]))
-
             relation_key = RelationNode.create_key(out_relationship[0])
             temp_relation = self.node_dictionary.get(relation_key, None)
             if temp_relation is None:

@@ -8,6 +8,12 @@ from semantics.object_node import ObjectNode
 
 
 class NSBuilder:
+    """
+    The NSBuilder class generates network sets to help train the InputSequencer. Data outside of the
+    land mammalian domain was used to train the sequencer in order to avoid memory recall.
+
+    The data used to train the InputSequencer can be found in network_set.xml in the data/out/ folder
+    """
     pickle_name = "ns_builder.pickle"
 
     def __init__(self, sn_classifier, n_out="network_set.xml"):
@@ -20,20 +26,50 @@ class NSBuilder:
         self._build_list = []
 
     def load(self):
+        """
+        Try to load the NSBuilder from a saved pickle.
+        :return: a new NSBuilder if no pickle is found, the old one if it is found
+        """
         if os.path.exists(self.pickle_path):
             with open(self.pickle_path, 'rb') as file:
                 return pickle.load(file)
         return self
 
     def create_standard_set(self):
+        """
+        Create a standard working set
+        """
         # We loaded an existing set from a pickle
         if len(self._build_list) > 0:
             self.build()
+            if settings.DEBUG:
+                print("Loaded from pickle!")
             return
 
+        if settings.DEBUG:
+            print("Building network set...")
+
         # Add standard items to the network training set
-        self.add("dog has a black coat", values=["dog"], relations=["has", "a"], relation_objects=["black", "coat"])
-        self.add("black is a color", values=["black"], relations=["is", "a"], relation_objects=["color"])
+        self.add("a large fish has shiny scales", values=["large", "fish"], relations=["has"],
+                 relation_objects=["shiny", "scales"])
+        self.add("a bass is a vertebrate", values=["bass"], relations=["is", "a"],
+                 relation_objects=["vertebrate"])
+        self.add("a sun fish has shiny scales", values=["sun", "fish"], relations=["has"],
+                 relation_objects=["shiny", "scales"])
+        self.add("a whale has blue skin", values=["whale"], relations=["has"],
+                 relation_objects=["blue", "skin"])
+        self.add("water is a liquid", values=["water"], relations=["is", "a"],
+                 relation_objects=["liquid"])
+        self.add("a strong whale eats plankton", values=["strong", "whale"], relations=["eats"],
+                 relation_objects=["plankton"])
+        self.add("plankton are animals", values=["plankton"], relations=["are"],
+                 relation_objects=["animals"])
+        self.add("whales are gentle", values=["whales"], relations=["are"],
+                 relation_objects=["gentle"])
+        self.add("white sharks are mean", values=["white", "sharks"], relations=["are"],
+                 relation_objects=["mean"])
+        self.add("sharks have sharp teeth", values=["sharks"], relations=["have"],
+                 relation_objects=["sharp", "teeth"])
 
         # Save contents to a pickle
         with open(self.pickle_path, 'wb') as output:
@@ -67,6 +103,9 @@ class NSBuilder:
 
         document.writexml(out_file, indent="  ", addindent="  ", newl='\n')
         out_file.close()
+
+        if settings.DEBUG:
+            print("Network Set built!")
 
     def add(self, sentence, values=None, relations=None, relation_objects=None):
         # Default values (cannot exist as parameter)

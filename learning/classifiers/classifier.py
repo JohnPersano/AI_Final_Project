@@ -55,7 +55,7 @@ class Classifier:
         return features
 
     def print_accuracy(self):
-        print("Input classifier accuracy: {}%"
+        print("Classifier accuracy: {}%"
               .format(int(nltk.classify.accuracy(self.classifier, self.test_set) * 100)))
 
     def print_important_features(self, amount=15):
